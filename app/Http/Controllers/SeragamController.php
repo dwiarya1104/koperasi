@@ -16,29 +16,89 @@ class SeragamController extends Controller
     public function index()
     {
         $data = Seragam::get();
-        return view('seragam.index',compact('data'));
+
+        $seragam = (object)[
+            "sortBy" => "created_at",
+            "sortType" => "asc",
+            "search" => "",
+            "ukuran" => "All",
+            "nama_barang" => "All"
+        ];
+        return view('seragam.index', compact('data', 'seragam'));
     }
 
-    public function search(Request $request) 
+    public function operation(Request $request)
     {
-        $data = Seragam::where('nama_barang', 'Like' , '%' . $request->search .'%')
-                        ->orWhere('harga','Like' , '%' . $request->search .'%')
-                        ->orWhere('ukuran','Like' , '%' . $request->search .'%')
-                        ->get();
+        $sortBy = $request->sortBy ? $request->sortBy : "asc";
+        $sortType = $request->sortType ? $request->sortType : "created_at";
+        $search = $request->search ? $request->search : "";
+        $ukuran = $request->ukuran ? $request->ukuran : "All";
+        $nama_barang = $request->nama_barang ? $request->nama_barang : "All";
 
-        return view('seragam.index',compact('data'));
+        $seragam = (object)[
+            "sortBy" => $sortBy,
+            "sortType" => $sortType,
+            "search" => $search,
+            "ukuran" => $ukuran,
+            "nama_barang" => $nama_barang
+        ];
+
+        if ($nama_barang === "All" && $ukuran === "All") {
+            $filter = Seragam::where('ukuran', 'like', '%' . $search . '%')
+                ->orWhere('nama_barang', 'like', '%' . $search . '%')
+                ->orWhere('harga', 'like', '%' . $search . '%')
+                ->orderBy($sortBy, $sortType)
+                ->get();
+        } else if ($nama_barang === "All" || $ukuran !== "All") {
+            $filter = Seragam::where('ukuran', $ukuran)
+                ->orderBy($sortBy, $sortType)
+                ->get();
+        } else if ($nama_barang !== "All" || $ukuran === "All") {
+            $filter = Seragam::where('nama_barang', $nama_barang)
+                ->orderBy($sortBy, $sortType)
+                ->get();
+        } else {
+            $filter = Seragam::where('nama_barang', $nama_barang)
+                ->where('ukuran', $ukuran)
+                ->orderBy($sortBy, $sortType)
+                ->get();
+        }
+
+        foreach ($filter as $key => $fil) {
+            if (!str_contains($fil->nama_barang, $search) && !str_contains($fil->ukuran, $search) && !str_contains($fil->harga, $search)) {
+                unset($filter[$key]);
+            }
+        }
+
+        $data = $filter->values();
+
+        // dd($data, $seragam);
+
+        return view('seragam.index', compact('seragam', 'data'));
     }
 
-    public function sortir(Request $request) {
-        $data = Seragam::orderBy($request->filter,$request->sortir)->get();
+    public function search(Request $request)
+    {
+        $data = Seragam::where('nama_barang', 'Like', '%' . $request->search . '%')
+            ->orWhere('harga', 'Like', '%' . $request->search . '%')
+            ->orWhere('ukuran', 'Like', '%' . $request->search . '%')
+            ->get();
 
-        return view('seragam.index',compact('data'));
+        return view('seragam.index', compact('data'));
     }
 
-    public function filter(Request $request) {
+    public function sortir(Request $request)
+    {
+        $data = Seragam::orderBy($request->filter, $request->sortir)->get();
+
+        return view('seragam.index', compact('data'));
+    }
+
+    public function filter(Request $request)
+    {
         $data = Seragam::where('ukuran', $request->filter_seragam)->get();
 
-        return view('seragam.index',compact('data'));
+        return view('seragam.index', compact('data'));
     }
 
     /**
@@ -59,7 +119,7 @@ class SeragamController extends Controller
      */
     public function store(Request $request)
     {
-        $this->validate($request,[
+        $this->validate($request, [
             'nama_barang' => 'required',
             'harga' => 'required',
             'ukuran' => 'required'
@@ -71,7 +131,7 @@ class SeragamController extends Controller
         $data->ukuran = $request->ukuran;
         $data->save();
 
-        Alert::success('Sukses!','Berhasil Menambah Seragam');
+        Alert::success('Sukses!', 'Berhasil Menambah Seragam');
         return redirect()->back();
     }
 
@@ -106,7 +166,7 @@ class SeragamController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $data = Seragam::where('id',$id)->firstOrFail();
+        $data = Seragam::where('id', $id)->firstOrFail();
 
         $request->validate([
             'nama_barang' => 'required',
@@ -119,7 +179,7 @@ class SeragamController extends Controller
         $data->ukuran = $request->ukuran;
         $data->update();
 
-        Alert::success('Sukses!','Berhasil Merubah Seragam');
+        Alert::success('Sukses!', 'Berhasil Merubah Seragam');
         return redirect()->back();
     }
 
@@ -134,7 +194,7 @@ class SeragamController extends Controller
         $data = Seragam::find($id);
         $data->delete();
 
-        Alert::success('Sukses!','Berhasil Menghapus Seragam');
+        Alert::success('Sukses!', 'Berhasil Menghapus Seragam');
         return redirect()->back();
     }
 }

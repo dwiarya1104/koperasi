@@ -12,7 +12,7 @@ class Seragam extends Model
     protected $table = 'seragam';
 
     protected $fillable = [
-        'ukuran',
+        'harga',
         'nama_barang',
         'ukuran'
     ];
